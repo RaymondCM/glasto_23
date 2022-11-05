@@ -17,10 +17,15 @@ def worker(opts, proxy, caps, negative_matching=True):
     url = "https://glastonbury.seetickets.com/content/extras"
 
     # Either look for a phrase that determines you're on the booking page
-    matching_phrases = ["buy", "register"]
+    matching_phrases = [
+        "registration number", "general admission", "2023 deposits", "please enter your", "purchase 1 ticket"
+    ]
+
     # Or look for a phrase that determines you're not on the waiting page
     if negative_matching:
-        matching_phrases = ["You will be held at this page"]
+        matching_phrases = [
+            "you will be held at this page", "free space on the booking site", "page will auto refresh"
+        ]
 
     # Proxy all browser sessions so the max is 2*N_Proxies
     opts.add_argument('--incognito')
@@ -30,7 +35,7 @@ def worker(opts, proxy, caps, negative_matching=True):
     while True:
         try:
             driver.get(url)
-            current_site = driver.page_source
+            current_site = ''.join([x for x in driver.page_source.lower() if x.isalnum() or x.isspace()])
             if negative_matching and any([phrase not in current_site for phrase in matching_phrases]):
                 print("Negative match not found!")
                 break
@@ -61,14 +66,16 @@ def main():
 
     chrome_driver.install()
 
-    max_clients = 2
-    proxy_list = ["8.8.8.8", "1.1.1.1", "76.76.2.0", "9.9.9.9", "208.67.222.222"]
+    max_clients = 1
+    proxy_list = ["8.8.8.8", "1.1.1.1", "76.76.2.0", "9.9.9.9"]
     threading_engine = threading.Thread
 
     for _ in range(max_clients):
         for proxy in proxy_list:
-            t = threading_engine(target=worker, args=(options, proxy, capabilities))
-            t.start()
+            pos_t = threading_engine(target=worker, args=(options, proxy, capabilities, True))
+            pos_t.start()
+            neg_t = threading_engine(target=worker, args=(options, proxy, capabilities, False))
+            neg_t.start()
             time.sleep(1)
         time.sleep(2)
 
