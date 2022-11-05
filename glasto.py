@@ -47,6 +47,9 @@ def worker(opts, proxy, caps, negative_matching=True):
             print("Refreshing {}".format(url))
             time.sleep(2)
         except Exception as e:
+            if not len(driver.window_handles):
+                print("Window closed")
+                return
             print("Skipping Error: {}".format(e))
             continue
 
